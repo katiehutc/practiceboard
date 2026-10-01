@@ -1,5 +1,6 @@
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class TransactionService {
@@ -12,6 +13,11 @@ public class TransactionService {
 
     public void addTransaction(Transaction transaction) {
         transactions.add(transaction);
+    }
+
+    // Read-only view, used by TransactionSearch (issue #4)
+    public List<Transaction> getTransactions() {
+        return Collections.unmodifiableList(transactions);
     }
 
     // Filter by category

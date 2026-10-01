@@ -1,0 +1,65 @@
+name: AI security and API drift review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  push:
+    branches: [main]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    # Secrets are not available to PRs from forks, so skip those.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            EVENT: ${{ github.event_name }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+            PUSH RANGE: ${{ github.event.before }}..${{ github.sha }}
+
+            The code is checked out in the current working directory. This is a
+            plain Java project: app code in src/, JUnit tests in test/.
+            - For a pull_request event, see the changes with `gh pr diff`.
+            - For a push event, see the changes with `git diff` on the PUSH RANGE.
+
+            Do two reviews of the CHANGED code only.
+
+            ## 1. Security review
+            Check for: injection (SQL, command, regex/ReDoS), reflecting
+            untrusted input into output or error messages, broken access
+            control (one user's data reaching another), missing input
+            validation or size limits, integer overflow, unsafe
+            deserialization, exposing mutable internal state, hardcoded
+            secrets, and vulnerable dependencies in pom.xml.
+            Rate each finding CRITICAL, HIGH, MEDIUM or LOW, or say NONE.
+
+            ## 2. Undocumented API drift
+            The documented public API is api/transaction-search.api plus the
+            "API" section of README.md. Flag any public class, constructor,
+            method, parameter, constant, default value, return value or
+            exception behavior that the change adds or alters WITHOUT updating
+            both documents. Also flag documentation that no longer matches
+            the code, and changes to public methods of TransactionService or
+            Transaction that other code depends on.
+
+            ## Posting results
+            - pull_request: post ONE top-level comment with `gh pr comment`,
+              and inline comments on specific lines.
+            - push: only if there is a HIGH or CRITICAL finding or any API
+              drift, open an issue with `gh issue create` titled
+              "AI review: <short summary>". Otherwise post nothing.
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh issue create:*),Bash(git diff:*),Bash(git log:*)"

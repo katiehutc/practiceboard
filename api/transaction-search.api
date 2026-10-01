@@ -1,0 +1,23 @@
+SearchCriteria constructor ()
+SearchCriteria field int DEFAULT_PAGE_SIZE = 25
+SearchCriteria field int MAX_PAGE_SIZE = 100
+SearchCriteria field int MAX_QUERY_LENGTH = 100
+SearchCriteria method categories(String[]) : SearchCriteria
+SearchCriteria method dateRange(LocalDate, LocalDate) : SearchCriteria
+SearchCriteria method getCategories() : java.util.Set<java.lang.String>
+SearchCriteria method getEndDate() : java.time.LocalDate
+SearchCriteria method getPage() : int
+SearchCriteria method getPageSize() : int
+SearchCriteria method getQuery() : java.lang.String
+SearchCriteria method getStartDate() : java.time.LocalDate
+SearchCriteria method page(int) : SearchCriteria
+SearchCriteria method pageSize(int) : SearchCriteria
+SearchCriteria method query(String) : SearchCriteria
+SearchResult constructor (List, int, int, int)
+SearchResult method getItems() : java.util.List<Transaction>
+SearchResult method getPage() : int
+SearchResult method getPageSize() : int
+SearchResult method getTotal() : int
+SearchResult method getTotalPages() : int
+TransactionSearch constructor (List)
+TransactionSearch method search(SearchCriteria) : SearchResult
