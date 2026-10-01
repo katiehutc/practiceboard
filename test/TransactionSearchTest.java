@@ -137,6 +137,29 @@ class TransactionSearchTest {
                     .search(new SearchCriteria().categories("Food"));
             assertEquals(2, result.getTotal());
         }
+
+            @Test
+            void transactionServiceFiltersByMultipleCategories() {
+                TransactionService service = new TransactionService();
+                TRANSACTIONS.forEach(service::addTransaction);
+
+                List<Integer> matchedIds = service.filterByCategories(" housing ", "EDUCATION")
+                    .stream().map(Transaction::getId).collect(Collectors.toList());
+                assertEquals(List.of(2, 4), matchedIds);
+            }
+
+            @Test
+            void transactionServiceTreatsEmptyCategoryFiltersAsUnfiltered() {
+                TransactionService service = new TransactionService();
+                TRANSACTIONS.forEach(service::addTransaction);
+
+                assertEquals(List.of(1, 2, 3, 4, 5), service.filterByCategories().stream()
+                    .map(Transaction::getId).collect(Collectors.toList()));
+                assertEquals(List.of(1, 2, 3, 4, 5), service.filterByCategories("", null).stream()
+                    .map(Transaction::getId).collect(Collectors.toList()));
+                assertEquals(List.of(1, 2, 3, 4, 5), service.filterByCategories((String[]) null).stream()
+                    .map(Transaction::getId).collect(Collectors.toList()));
+            }
     }
 
     @Nested

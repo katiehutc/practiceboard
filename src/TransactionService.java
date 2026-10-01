@@ -1,7 +1,10 @@
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 public class TransactionService {
 
@@ -30,6 +33,28 @@ public class TransactionService {
             }
         }
 
+        return results;
+    }
+
+    // Matches any supplied category, ignoring case. Null or blank values are ignored.
+    public List<Transaction> filterByCategories(String... categories) {
+        Set<String> normalized = new HashSet<>();
+        if (categories != null) {
+            for (String category : categories) {
+                if (category != null && !category.isBlank()) {
+                    normalized.add(category.trim().toLowerCase(Locale.ROOT));
+                }
+            }
+        }
+
+        List<Transaction> results = new ArrayList<>();
+        for (Transaction transaction : transactions) {
+            String category = transaction.getCategory();
+            if (normalized.isEmpty() || (category != null
+                    && normalized.contains(category.trim().toLowerCase(Locale.ROOT)))) {
+                results.add(transaction);
+            }
+        }
         return results;
     }
 

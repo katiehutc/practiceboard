@@ -5,7 +5,7 @@ A transaction history app in Java. Users can filter and search their transaction
 | File | What it does | Owner |
 |---|---|---|
 | `src/Transaction.java` | A single transaction | Katie |
-| `src/TransactionService.java` | Stores transactions; filters by category and date | Katie |
+| `src/TransactionService.java` | Stores transactions; filters by one or more categories and date | Katie |
 | `src/Main.java` | Demo program | Katie |
 | `src/TransactionSearch.java`, `src/SearchCriteria.java`, `src/SearchResult.java` | Text search combined with date and category filters, plus pagination | Issue #4 |
 
@@ -38,6 +38,13 @@ result.getTotalPages();
 |---|---|
 | `new TransactionSearch(List<Transaction>)` | Builds the search index. Descriptions and categories are lowercased once, here. Throws `NullPointerException` for a null list. |
 | `SearchResult search(SearchCriteria)` | Returns the matching page. Keeps the original order. Throws `NullPointerException` for null criteria. |
+
+### `TransactionService`
+
+| Method | Behavior |
+|---|---|
+| `filterByCategory(String)` | Filters by one category, ignoring case. |
+| `filterByCategories(String...)` | Matches any supplied category (OR), ignoring case. Null and blank values are ignored; no effective categories means no category filter. |
 
 ### `SearchCriteria`
 
