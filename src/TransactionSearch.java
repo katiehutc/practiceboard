@@ -1,7 +1,6 @@
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 
 // Search index and query for transactions (issue #4).
@@ -9,22 +8,24 @@ import java.util.Objects;
 // keeping the original order of the transactions.
 public final class TransactionSearch {
 
-    private final List<Entry> index;
+    private final List<Transaction> transactions;
 
-    // Lowercases each description once up front, so queries don't redo it on every search.
+    // Rebuilt when the size of the list changes; swapped as a whole so a search
+    // always works on one consistent snapshot.
+    private volatile Index index;
+
+    // Folds each description and category once up front, so queries don't redo it on every search.
+    // The list is kept, not copied: transactions added to it later are picked up by the next search.
     public TransactionSearch(List<Transaction> transactions) {
-        Objects.requireNonNull(transactions, "transactions");
-        index = new ArrayList<>(transactions.size());
-        for (Transaction transaction : transactions) {
-            index.add(new Entry(transaction, lower(transaction.getDescription()), lower(transaction.getCategory())));
-        }
+        this.transactions = Objects.requireNonNull(transactions, "transactions");
+        this.index = buildIndex();
     }
 
     public SearchResult search(SearchCriteria criteria) {
         Objects.requireNonNull(criteria, "criteria");
 
         List<Transaction> matches = new ArrayList<>();
-        for (Entry entry : index) {
+        for (Entry entry : currentIndex().entries) {
             if (matches(entry, criteria)) {
                 matches.add(entry.transaction);
             }
@@ -32,8 +33,31 @@ public final class TransactionSearch {
 
         int from = (int) Math.min((long) (criteria.getPage() - 1) * criteria.getPageSize(), matches.size());
         int to = Math.min(from + criteria.getPageSize(), matches.size());
-        return new SearchResult(new ArrayList<>(matches.subList(from, to)),
+        return new SearchResult(matches.subList(from, to),
                 criteria.getPage(), criteria.getPageSize(), matches.size());
+    }
+
+    private Index currentIndex() {
+        Index current = index;
+        if (current.sourceSize != transactions.size()) {
+            current = buildIndex();
+            index = current;
+        }
+        return current;
+    }
+
+    // Null transactions are left out, so one bad row can't break every search.
+    private Index buildIndex() {
+        List<Transaction> snapshot = new ArrayList<>(transactions);
+        List<Entry> entries = new ArrayList<>(snapshot.size());
+        for (Transaction transaction : snapshot) {
+            if (transaction != null) {
+                entries.add(new Entry(transaction,
+                        SearchCriteria.fold(transaction.getDescription()),
+                        SearchCriteria.fold(transaction.getCategory()).trim()));
+            }
+        }
+        return new Index(entries, snapshot.size());
     }
 
     private static boolean matches(Entry entry, SearchCriteria criteria) {
@@ -61,8 +85,14 @@ public final class TransactionSearch {
         return true;
     }
 
-    private static String lower(String value) {
-        return value == null ? "" : value.toLowerCase(Locale.ROOT);
+    private static final class Index {
+        final List<Entry> entries;
+        final int sourceSize;
+
+        Index(List<Entry> entries, int sourceSize) {
+            this.entries = entries;
+            this.sourceSize = sourceSize;
+        }
     }
 
     private static final class Entry {

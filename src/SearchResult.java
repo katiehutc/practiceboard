@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -9,8 +10,12 @@ public final class SearchResult {
     private final int pageSize;
     private final int total;
 
+    // Copies the items, so later changes to the caller's list don't change the result.
     public SearchResult(List<Transaction> items, int page, int pageSize, int total) {
-        this.items = Collections.unmodifiableList(items);
+        if (page < 1 || pageSize < 1 || total < 0) {
+            throw new IllegalArgumentException("page and pageSize must be at least 1, and total at least 0");
+        }
+        this.items = Collections.unmodifiableList(new ArrayList<>(items));
         this.page = page;
         this.pageSize = pageSize;
         this.total = total;
@@ -33,6 +38,6 @@ public final class SearchResult {
     }
 
     public int getTotalPages() {
-        return (total + pageSize - 1) / pageSize;
+        return (int) (((long) total + pageSize - 1) / pageSize);
     }
 }

@@ -9,8 +9,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
-// Edge cases the transaction search does not handle yet. Each test states the rule
-// it is checking (from the README's API section) and fails against the current code.
+// Edge cases of the transaction search. Each test states the rule it is checking
+// (from the README's API section).
 class TransactionSearchEdgeCaseTest {
 
     private static final LocalDate DATE = LocalDate.of(2026, 9, 1);
@@ -52,8 +52,8 @@ class TransactionSearchEdgeCaseTest {
     }
 
     // Rule: the constructor throws NullPointerException "for a null list" only.
-    // TransactionService.addTransaction accepts null, so one bad row currently
-    // makes every search over that service impossible.
+    // TransactionService.addTransaction accepts null, so one bad row must not
+    // make every search over that service impossible.
     @Test
     void nullTransactionsInTheListAreSkippedNotFatal() {
         List<Transaction> transactions = Arrays.asList(
@@ -66,7 +66,7 @@ class TransactionSearchEdgeCaseTest {
     }
 
     // Rule: the README usage builds the search from service.getTransactions(), a live
-    // view. Transactions added afterwards are silently missing from every search.
+    // view, so transactions added afterwards must show up in later searches.
     @Test
     void transactionsAddedAfterTheSearchIsBuiltAreFound() {
         TransactionService service = new TransactionService();
@@ -79,8 +79,7 @@ class TransactionSearchEdgeCaseTest {
     }
 
     // Rule: getItems() — "The list can't be modified."
-    // SearchResult wraps the caller's list without copying it, so changing that
-    // list afterwards changes the result.
+    // Changing the list that was passed in must not change the result either.
     @Test
     void resultItemsDoNotChangeWhenTheSourceListChanges() {
         List<Transaction> source = new ArrayList<>(List.of(
@@ -93,11 +92,43 @@ class TransactionSearchEdgeCaseTest {
     }
 
     // Rule: "Invalid input throws IllegalArgumentException" and page sizes are 1-100.
-    // The public SearchResult constructor accepts a page size of 0, and
-    // getTotalPages() then fails with ArithmeticException (divide by zero).
+    // A page size of 0 would otherwise make getTotalPages() divide by zero.
     @Test
     void resultRejectsANonPositivePageSize() {
         assertThrows(IllegalArgumentException.class,
                 () -> new SearchResult(List.of(), 1, 0, 5).getTotalPages());
+    }
+
+    @Test
+    void resultRejectsANonPositivePageAndANegativeTotal() {
+        assertThrows(IllegalArgumentException.class, () -> new SearchResult(List.of(), 0, 25, 5));
+        assertThrows(IllegalArgumentException.class, () -> new SearchResult(List.of(), 1, 25, -1));
+    }
+
+    @Test
+    void totalPagesDoesNotOverflowForHugeTotals() {
+        assertEquals(21_474_837, new SearchResult(List.of(), 1, 100, Integer.MAX_VALUE).getTotalPages());
+    }
+
+    // Rule: the search follows the list it was built from, so removals show up too.
+    @Test
+    void transactionsRemovedAfterTheSearchIsBuiltAreNotFound() {
+        List<Transaction> transactions = new ArrayList<>(List.of(
+                new Transaction(1, "Rent", 1200.00, "Housing", DATE),
+                new Transaction(2, "Refund", -20.00, "Other", DATE)));
+        TransactionSearch search = new TransactionSearch(transactions);
+
+        transactions.remove(0);
+
+        assertEquals(List.of(2), ids(search.search(new SearchCriteria())));
+    }
+
+    // Rule: "Case-insensitive" also holds for letters with more than one lowercase form.
+    @Test
+    void caseInsensitiveMatchHandlesGreekFinalSigma() {
+        TransactionSearch search = new TransactionSearch(List.of(
+                new Transaction(1, "\u039F\u0394\u039F\u03A3", 9.00, "Food", DATE)));
+
+        assertEquals(List.of(1), ids(search.search(new SearchCriteria().query("\u03BF\u03B4\u03BF\u03C3"))));
     }
 }
