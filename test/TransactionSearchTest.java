@@ -57,6 +57,39 @@ class TransactionSearchTest {
         }
 
         @Test
+        void resetClearsAllActiveFiltersToDefaults() {
+            SearchCriteria criteria = new SearchCriteria()
+                    .query("coffee")
+                    .dateRange(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30))
+                    .categories("Food", "Housing")
+                    .page(3)
+                    .pageSize(50);
+
+            criteria.reset();
+
+            assertEquals("", criteria.getQuery());
+            assertEquals(null, criteria.getStartDate());
+            assertEquals(null, criteria.getEndDate());
+            assertTrue(criteria.getCategories().isEmpty());
+            assertEquals(1, criteria.getPage());
+            assertEquals(SearchCriteria.DEFAULT_PAGE_SIZE, criteria.getPageSize());
+        }
+
+        @Test
+        void emptyResultsProvideAClearEmptyState() {
+            SearchResult result = search.search(new SearchCriteria()
+                    .query("zzz")
+                    .dateRange(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30))
+                    .categories("Food"));
+
+            assertTrue(result.getItems().isEmpty());
+            assertEquals(0, result.getTotal());
+            assertEquals(0, result.getTotalPages());
+            assertEquals(1, result.getPage());
+            assertEquals(SearchCriteria.DEFAULT_PAGE_SIZE, result.getPageSize());
+        }
+
+        @Test
         void specialCharactersAreMatchedLiterally() {
             assertEquals(List.of(4), ids(new SearchCriteria().query("c++")));
             assertEquals(List.of(4), ids(new SearchCriteria().query("(50%")));
