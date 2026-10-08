@@ -36,7 +36,7 @@ result.getTotalPages();
 
 | Member | Behavior |
 |---|---|
-| `new TransactionSearch(List<Transaction>)` | Builds the search index. Descriptions and categories are lowercased once, here. Throws `NullPointerException` for a null list. |
+| `new TransactionSearch(List<Transaction>)` | Builds the search index. Descriptions and categories are case-folded once, here. The list is kept, not copied: when transactions are added to or removed from it, the next search rebuilds the index. Null transactions in the list are skipped. Throws `NullPointerException` for a null list. |
 | `SearchResult search(SearchCriteria)` | Returns the matching page. Keeps the original order. Throws `NullPointerException` for null criteria. |
 
 ### `TransactionService`
@@ -52,9 +52,9 @@ Each setter returns the same `SearchCriteria`, so calls can be chained. All filt
 
 | Setter | Default | Behavior |
 |---|---|---|
-| `query(String)` | no search | Case-insensitive partial match on the description. Null or blank means no search. Special characters are matched as plain text. Throws `IllegalArgumentException` if longer than `MAX_QUERY_LENGTH` (100) characters. |
+| `query(String)` | no search | Case-insensitive partial match on the description. Null or blank means no search. Case is ignored one character at a time, like `String.equalsIgnoreCase`, so non-English letters such as `İ` match too. Special characters are matched as plain text. Throws `IllegalArgumentException` if longer than `MAX_QUERY_LENGTH` (100) characters; an emoji counts as one character. |
 | `dateRange(LocalDate start, LocalDate end)` | no range | Inclusive. Either end may be null for an open-ended range. Transactions without a date are left out when a range is set. Throws `IllegalArgumentException` if `start` is after `end`. |
-| `categories(String...)` | all categories | Matches any of the given categories (OR), ignoring case. Null and blank values are ignored. |
+| `categories(String...)` | all categories | Matches any of the given categories (OR), ignoring case and surrounding spaces on both the filter and the stored category. Null and blank values are ignored. |
 | `page(int)` | `1` | Values below 1 become 1. |
 | `pageSize(int)` | `DEFAULT_PAGE_SIZE` (25) | Clamped to 1–`MAX_PAGE_SIZE` (100). |
 
@@ -73,6 +73,8 @@ Error messages never repeat the user's input back.
 
 A page past the end returns no items, with the correct total.
 
+`new SearchResult(items, page, pageSize, total)` copies `items`, and throws `IllegalArgumentException` if `page` or `pageSize` is below 1 or `total` is negative.
+
 ### Change to `TransactionService`
 
 Added `List<Transaction> getTransactions()`, a read-only view of the stored transactions, so `TransactionSearch` can use them. No existing methods changed.
@@ -90,6 +92,7 @@ This compiles everything, runs the tests, and fails if coverage of the issue #4 
 | Test | What it covers |
 |---|---|
 | `test/TransactionSearchTest.java` | Text search, date ranges, categories, combined filters, pagination, input limits, unmodifiable results, and use with `TransactionService` |
+| `test/TransactionSearchEdgeCaseTest.java` | Edge cases: untrimmed stored categories, non-English case-insensitive matching, emoji in the query limit, null transactions, transactions added or removed after the search is built, and `SearchResult` input checks |
 | `test/ApiContractTest.java` | Fails if the public API of the search classes changes without updating `api/transaction-search.api` |
 
 After an **intentional** API change, update the API section above, then regenerate the contract file:

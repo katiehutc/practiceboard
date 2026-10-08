@@ -1,7 +1,6 @@
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Set;
 
 // Filters for TransactionSearch (issue #4). Built with chained setters:
@@ -21,12 +20,13 @@ public final class SearchCriteria {
     private int pageSize = DEFAULT_PAGE_SIZE;
 
     // Case-insensitive partial match on the description. Null or blank means no search.
+    // The limit counts characters (code points), so an emoji counts as one.
     public SearchCriteria query(String query) {
         String trimmed = query == null ? "" : query.trim();
-        if (trimmed.length() > MAX_QUERY_LENGTH) {
+        if (trimmed.codePointCount(0, trimmed.length()) > MAX_QUERY_LENGTH) {
             throw new IllegalArgumentException("query must be at most " + MAX_QUERY_LENGTH + " characters");
         }
-        this.query = trimmed.toLowerCase(Locale.ROOT);
+        this.query = fold(trimmed);
         return this;
     }
 
@@ -46,7 +46,7 @@ public final class SearchCriteria {
         if (categories != null) {
             for (String category : categories) {
                 if (category != null && !category.isBlank()) {
-                    normalized.add(category.trim().toLowerCase(Locale.ROOT));
+                    normalized.add(fold(category).trim());
                 }
             }
         }
@@ -66,6 +66,7 @@ public final class SearchCriteria {
         return this;
     }
 
+<<<<<<< HEAD
     // Clears all active filters and restores the default paging state.
     public SearchCriteria reset() {
         this.query = "";
@@ -75,6 +76,21 @@ public final class SearchCriteria {
         this.page = 1;
         this.pageSize = DEFAULT_PAGE_SIZE;
         return this;
+=======
+    // Case folding shared by the criteria and the search index, so both sides compare alike.
+    // Folds one character at a time (upper, then lower), like String.equalsIgnoreCase.
+    // String.toLowerCase can turn one character into two (U+0130 becomes "i" plus a
+    // combining dot), which would stop a plain "i" from matching it.
+    static String fold(String value) {
+        if (value == null) {
+            return "";
+        }
+        StringBuilder folded = new StringBuilder(value.length());
+        value.codePoints()
+                .map(codePoint -> Character.toLowerCase(Character.toUpperCase(codePoint)))
+                .forEach(folded::appendCodePoint);
+        return folded.toString();
+>>>>>>> 4c7c480f8f19254bcffd0777ed1a703eb0f3c842
     }
 
     public String getQuery() {
