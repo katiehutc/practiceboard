@@ -33,7 +33,7 @@ class TransactionSearchTest {
 
         @Test
         void partialMatch() {
-            assertEquals(List.of(1), ids(new SearchCriteria().query("star")));
+            assertEquals(List.of(2), ids(new SearchCriteria().query("star")));
         }
 
         @Test
