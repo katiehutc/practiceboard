@@ -9,7 +9,7 @@ A transaction history app in Java. Users can filter and search their transaction
 | `src/Main.java` | Demo program | Katie |
 | `src/TransactionSearch.java`, `src/SearchCriteria.java`, `src/SearchResult.java` | Text search combined with date and category filters, plus pagination | Issue #4 |
 
-## Transaction search (issue [katiehutc/portfolio#4](https://github.com/katiehutc/portfolio/issues/4))
+## Transaction search 
 
 `TransactionService` filters by one thing at a time. `TransactionSearch` adds **text search** and lets you combine text, date range and categories in one query, with paging for long histories.
 
