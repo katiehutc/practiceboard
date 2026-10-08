@@ -66,6 +66,17 @@ public final class SearchCriteria {
         return this;
     }
 
+    // Clears all active filters and restores the default paging state.
+    public SearchCriteria reset() {
+        this.query = "";
+        this.startDate = null;
+        this.endDate = null;
+        this.categories = Collections.emptySet();
+        this.page = 1;
+        this.pageSize = DEFAULT_PAGE_SIZE;
+        return this;
+    }
+
     public String getQuery() {
         return query;
     }
